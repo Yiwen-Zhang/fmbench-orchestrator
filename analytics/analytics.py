@@ -14,6 +14,7 @@ import pandas as pd
 from pathlib import Path
 from tomark import Tomark
 from sagemaker_cost_rpm_plot import plot_best_cost_instance_heatmap, plot_tps_vs_cost
+from sagemaker_accuracy_plot import plot_accuracy
 
 logging.basicConfig(format='[%(asctime)s] p%(process)s {%(filename)s:%(lineno)d} %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -339,6 +340,26 @@ def main():
                         tps_vs_cost_fname,
                         args.model_id,
                         subtitle)
+
+
+    ## Check if model evaluation results are saved. 
+    accuracy_file_pattern: str = os.path.join(args.results_dir, "*",
+                                             f"results-{args.model_id}-*",
+                                             "candidate_model_accuracy.csv")
+    accuracy_files = glob.glob(accuracy_file_pattern,recursive=True)
+    accuracy_files_found = len(accuracy_files)
+    if accuracy_files_found >0 : 
+        logger.info(f"The experiment also output the following accuracy files={accuracy_file_pattern} ")
+        accuracy_data = []
+        for accuracy_file in accuracy_files: 
+            logger.info(f"accuracy_file={accuracy_file}") 
+            accuracy_df = pd.read_csv(accuracy_file) 
+            accuracy_data.append(accuracy_df)
+        accuracy_all_df = pd.concat(accuracy_data, ignore_index=True) 
+        accuracy_plot_name: str = os.path.join(ANALYTICS_RESULTS_DIR,
+                                    f"candidate_model_accuracy_comparison.html")
+
+        plot_accuracy(accuracy_all_df, accuracy_plot_name)
 
     logger.info("all done")
 if __name__ == "__main__":
